@@ -1,0 +1,1478 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Data Preprocessing\n",
+    "In this section, we load the information about cryptocurrencies from the provided CSV file and perform some data preprocessing tasks. The data was retrieved from [CryptoCompare](https://min-api.cryptocompare.com/data/all/coinlist).  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Import libraries\n",
+    "import pandas as pd"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Start by loading the data in a Pandas DataFrame named **“crypto_df.”** Continue with the following data preprocessing tasks:  \n",
+    "\n",
+    "- Remove all cryptocurrencies that aren’t trading.\n",
+    "- Remove all cryptocurrencies that don’t have an algorithm defined.\n",
+    "- Remove the IsTrading column.\n",
+    "- Remove all cryptocurrencies with at least one null value.\n",
+    "- Remove all cryptocurrencies without coins mined.\n",
+    "- Store the names of all cryptocurrencies on a DataFramed named coins_name, and use the crypto_df.index as the index for this new DataFrame.\n",
+    "- Remove the CoinName column.\n",
+    "- Create dummies variables for all of the text features, and store the resulting data on a DataFrame named X.\n",
+    "- Use the StandardScaler from sklearn to standardize all of the data from the X DataFrame. Remember, this is important prior to using PCA and K-means algorithms."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th>CoinName</th>\n",
+       "      <th>Algorithm</th>\n",
+       "      <th>IsTrading</th>\n",
+       "      <th>ProofType</th>\n",
+       "      <th>TotalCoinsMined</th>\n",
+       "      <th>TotalCoinSupply</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>0</td>\n",
+       "      <td>42</td>\n",
+       "      <td>42 Coin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>True</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>4.199995e+01</td>\n",
+       "      <td>42</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1</td>\n",
+       "      <td>365</td>\n",
+       "      <td>365Coin</td>\n",
+       "      <td>X11</td>\n",
+       "      <td>True</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>2300000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>2</td>\n",
+       "      <td>404</td>\n",
+       "      <td>404Coin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>True</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>1.055185e+09</td>\n",
+       "      <td>532000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>3</td>\n",
+       "      <td>611</td>\n",
+       "      <td>SixEleven</td>\n",
+       "      <td>SHA-256</td>\n",
+       "      <td>True</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>611000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>4</td>\n",
+       "      <td>808</td>\n",
+       "      <td>808</td>\n",
+       "      <td>SHA-256</td>\n",
+       "      <td>True</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>0.000000e+00</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "  Unnamed: 0   CoinName Algorithm  IsTrading ProofType  TotalCoinsMined  \\\n",
+       "0         42    42 Coin    Scrypt       True   PoW/PoS     4.199995e+01   \n",
+       "1        365    365Coin       X11       True   PoW/PoS              NaN   \n",
+       "2        404    404Coin    Scrypt       True   PoW/PoS     1.055185e+09   \n",
+       "3        611  SixEleven   SHA-256       True       PoW              NaN   \n",
+       "4        808        808   SHA-256       True   PoW/PoS     0.000000e+00   \n",
+       "\n",
+       "  TotalCoinSupply  \n",
+       "0              42  \n",
+       "1      2300000000  \n",
+       "2       532000000  \n",
+       "3          611000  \n",
+       "4               0  "
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Load the dataset in a Pandas DataFrame\n",
+    "file_path = \"../Resources/crypto_data.csv\"\n",
+    "crypto_df = pd.read_csv(file_path)\n",
+    "crypto_df.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##  First, account for the data you have. \n",
+    "### **What data is available?**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(1252, 7)"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "crypto_df.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "First, account for the data you have. After all, you can’t extract knowledge without data. We can use the columns method and output the columns, as shown below:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Index(['Unnamed: 0', 'CoinName', 'Algorithm', 'IsTrading', 'ProofType',\n",
+       "       'TotalCoinsMined', 'TotalCoinSupply'],\n",
+       "      dtype='object')"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Columns \n",
+    "crypto_df.columns"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### **What type of data is available?**"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Using the dtypes method, confirm the data type, which also will alert us if anything should be changedin the next step (e.g., converting text to numerical data). All the columns we plan to use in our model must contain a numerical data type:\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "Unnamed: 0          object\n",
+       "CoinName            object\n",
+       "Algorithm           object\n",
+       "IsTrading             bool\n",
+       "ProofType           object\n",
+       "TotalCoinsMined    float64\n",
+       "TotalCoinSupply     object\n",
+       "dtype: object"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# List dataframe data types\n",
+    "crypto_df.dtypes"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Unnamed, CoinName, Algorithm, IsTrading, ProofType, and TotalCoinSupply columns contains a data type object, which is not numerical."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### What data is missing?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "See if any data is missing. Unsupervised learning models can’t handle missing data. If you try to run a model on a dataset with missing data, you’ll get an error."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Column Unnamed: 0 has 0 null values\n",
+      "Column CoinName has 0 null values\n",
+      "Column Algorithm has 0 null values\n",
+      "Column IsTrading has 0 null values\n",
+      "Column ProofType has 0 null values\n",
+      "Column TotalCoinsMined has 508 null values\n",
+      "Column TotalCoinSupply has 0 null values\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Find null values\n",
+    "for column in crypto_df.columns:\n",
+    "    print(f\"Column {column} has {crypto_df[column].isnull().sum()} null values\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Remove all cryptocurrencies that don’t have an algorithm defined.**"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "The algorithm column has 0 null values. All are defined. However, the TotalCoinsMined column has 508 null values."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### What data can be removed?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Remove all cryptocurrencies with at least one null value.**  \n",
+    "\n",
+    "Determine if the data can be removed. Consider: Are there string columns that we can’t use? Are there columns with excessive null data points? Was our decision to handle missing values to just remove them?\n",
+    "In our example, only a 508 rows have null data points, but not enough to remove a whole column’s worth. Rows of data with null values can be removed with the dropna() method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(744, 7)"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Drop null rows\n",
+    "crypto_df = crypto_df.dropna()\n",
+    "crypto_df.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Duplicates can also be removed. Having duplicate rows means the data has already been recorded, so no new information can be obtained from them. Keeping the rows in the dataset could affect the results by giving those data points too much weight. Use the duplicated().sum() method to check for duplicates."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Duplicate entries: 0\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Find duplicate entries\n",
+    "print(f\"Duplicate entries: {crypto_df.duplicated().sum()}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Remove all cryptocurrencies that aren’t trading.**  "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(744, 7)"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Transform String column\n",
+    "def change_string(IsTrading):\n",
+    "    if IsTrading == \"False\":\n",
+    "        return 0\n",
+    "    else:\n",
+    "        return 1\n",
+    "    \n",
+    "crypto_df[\"IsTrading\"] = crypto_df[\"IsTrading\"].apply(change_string)\n",
+    "crypto_df.shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(578, 7)"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "crypto_df = crypto_df[-(crypto_df == 0).any(axis=1)]\n",
+    "crypto_df.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Remove the IsTrading column**  \n",
+    "Having all **\"IsTrading\"** rows means no new information can be obtained from them. We can drop the column."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th>CoinName</th>\n",
+       "      <th>Algorithm</th>\n",
+       "      <th>ProofType</th>\n",
+       "      <th>TotalCoinsMined</th>\n",
+       "      <th>TotalCoinSupply</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>0</td>\n",
+       "      <td>42</td>\n",
+       "      <td>42 Coin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>4.199995e+01</td>\n",
+       "      <td>42</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>2</td>\n",
+       "      <td>404</td>\n",
+       "      <td>404Coin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>1.055185e+09</td>\n",
+       "      <td>532000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>5</td>\n",
+       "      <td>1337</td>\n",
+       "      <td>EliteCoin</td>\n",
+       "      <td>X13</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>2.927942e+10</td>\n",
+       "      <td>314159265359</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>7</td>\n",
+       "      <td>BTC</td>\n",
+       "      <td>Bitcoin</td>\n",
+       "      <td>SHA-256</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>1.792718e+07</td>\n",
+       "      <td>21000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>8</td>\n",
+       "      <td>ETH</td>\n",
+       "      <td>Ethereum</td>\n",
+       "      <td>Ethash</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>1.076842e+08</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "  Unnamed: 0   CoinName Algorithm ProofType  TotalCoinsMined TotalCoinSupply\n",
+       "0         42    42 Coin    Scrypt   PoW/PoS     4.199995e+01              42\n",
+       "2        404    404Coin    Scrypt   PoW/PoS     1.055185e+09       532000000\n",
+       "5       1337  EliteCoin       X13   PoW/PoS     2.927942e+10    314159265359\n",
+       "7        BTC    Bitcoin   SHA-256       PoW     1.792718e+07        21000000\n",
+       "8        ETH   Ethereum    Ethash       PoW     1.076842e+08               0"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Remove the column\n",
+    "crypto_df.drop(columns=[\"IsTrading\"], inplace=True)\n",
+    "crypto_df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(578, 6)"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "crypto_df.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Remove all cryptocurrencies without coins mined.**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "pd.options.display.float_format = '{:,.0f}'.format"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "crypto_df = crypto_df[crypto_df.TotalCoinsMined > 0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(577, 6)"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "crypto_df.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Store the names of all cryptocurrencies on a DataFramed named coins_name, and use the crypto_df.index as the index for this new DataFrame.**  \n",
+    "\n",
+    "**Remove the CoinName column.**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>CoinName</th>\n",
+       "      <th>Algorithm</th>\n",
+       "      <th>ProofType</th>\n",
+       "      <th>TotalCoinsMined</th>\n",
+       "      <th>TotalCoinSupply</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>42</td>\n",
+       "      <td>42 Coin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>42</td>\n",
+       "      <td>42</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>404</td>\n",
+       "      <td>404Coin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>1,055,184,902</td>\n",
+       "      <td>532000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1337</td>\n",
+       "      <td>EliteCoin</td>\n",
+       "      <td>X13</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>29,279,424,623</td>\n",
+       "      <td>314159265359</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>BTC</td>\n",
+       "      <td>Bitcoin</td>\n",
+       "      <td>SHA-256</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>17,927,175</td>\n",
+       "      <td>21000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>ETH</td>\n",
+       "      <td>Ethereum</td>\n",
+       "      <td>Ethash</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>107,684,223</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>GAP</td>\n",
+       "      <td>Gapcoin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>14,931,046</td>\n",
+       "      <td>250000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>BDX</td>\n",
+       "      <td>Beldex</td>\n",
+       "      <td>CryptoNight</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>980,222,595</td>\n",
+       "      <td>1400222610</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>ZEN</td>\n",
+       "      <td>Horizen</td>\n",
+       "      <td>Equihash</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>7,296,538</td>\n",
+       "      <td>21000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>XBC</td>\n",
+       "      <td>BitcoinPlus</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoS</td>\n",
+       "      <td>128,327</td>\n",
+       "      <td>1000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>DVTC</td>\n",
+       "      <td>DivotyCoin</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>21,491,213</td>\n",
+       "      <td>100000000</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>577 rows × 5 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "               CoinName    Algorithm ProofType  TotalCoinsMined  \\\n",
+       "Unnamed: 0                                                        \n",
+       "42              42 Coin       Scrypt   PoW/PoS               42   \n",
+       "404             404Coin       Scrypt   PoW/PoS    1,055,184,902   \n",
+       "1337          EliteCoin          X13   PoW/PoS   29,279,424,623   \n",
+       "BTC             Bitcoin      SHA-256       PoW       17,927,175   \n",
+       "ETH            Ethereum       Ethash       PoW      107,684,223   \n",
+       "...                 ...          ...       ...              ...   \n",
+       "GAP             Gapcoin       Scrypt   PoW/PoS       14,931,046   \n",
+       "BDX              Beldex  CryptoNight       PoW      980,222,595   \n",
+       "ZEN             Horizen     Equihash       PoW        7,296,538   \n",
+       "XBC         BitcoinPlus       Scrypt       PoS          128,327   \n",
+       "DVTC         DivotyCoin       Scrypt   PoW/PoS       21,491,213   \n",
+       "\n",
+       "           TotalCoinSupply  \n",
+       "Unnamed: 0                  \n",
+       "42                      42  \n",
+       "404              532000000  \n",
+       "1337          314159265359  \n",
+       "BTC               21000000  \n",
+       "ETH                      0  \n",
+       "...                    ...  \n",
+       "GAP              250000000  \n",
+       "BDX             1400222610  \n",
+       "ZEN               21000000  \n",
+       "XBC                1000000  \n",
+       "DVTC             100000000  \n",
+       "\n",
+       "[577 rows x 5 columns]"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "coins_name = crypto_df.set_index([\"Unnamed: 0\"])\n",
+    "coins_name"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Algorithm</th>\n",
+       "      <th>ProofType</th>\n",
+       "      <th>TotalCoinsMined</th>\n",
+       "      <th>TotalCoinSupply</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>42</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>42</td>\n",
+       "      <td>42</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>404</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>1,055,184,902</td>\n",
+       "      <td>532000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1337</td>\n",
+       "      <td>X13</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>29,279,424,623</td>\n",
+       "      <td>314159265359</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>BTC</td>\n",
+       "      <td>SHA-256</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>17,927,175</td>\n",
+       "      <td>21000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>ETH</td>\n",
+       "      <td>Ethash</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>107,684,223</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>GAP</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>14,931,046</td>\n",
+       "      <td>250000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>BDX</td>\n",
+       "      <td>CryptoNight</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>980,222,595</td>\n",
+       "      <td>1400222610</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>ZEN</td>\n",
+       "      <td>Equihash</td>\n",
+       "      <td>PoW</td>\n",
+       "      <td>7,296,538</td>\n",
+       "      <td>21000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>XBC</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoS</td>\n",
+       "      <td>128,327</td>\n",
+       "      <td>1000000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>DVTC</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>PoW/PoS</td>\n",
+       "      <td>21,491,213</td>\n",
+       "      <td>100000000</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>577 rows × 4 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "              Algorithm ProofType  TotalCoinsMined TotalCoinSupply\n",
+       "Unnamed: 0                                                        \n",
+       "42               Scrypt   PoW/PoS               42              42\n",
+       "404              Scrypt   PoW/PoS    1,055,184,902       532000000\n",
+       "1337                X13   PoW/PoS   29,279,424,623    314159265359\n",
+       "BTC             SHA-256       PoW       17,927,175        21000000\n",
+       "ETH              Ethash       PoW      107,684,223               0\n",
+       "...                 ...       ...              ...             ...\n",
+       "GAP              Scrypt   PoW/PoS       14,931,046       250000000\n",
+       "BDX         CryptoNight       PoW      980,222,595      1400222610\n",
+       "ZEN            Equihash       PoW        7,296,538        21000000\n",
+       "XBC              Scrypt       PoS          128,327         1000000\n",
+       "DVTC             Scrypt   PoW/PoS       21,491,213       100000000\n",
+       "\n",
+       "[577 rows x 4 columns]"
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Remove the column\n",
+    "coins_name.drop(columns=[\"CoinName\"], inplace=True)\n",
+    "coins_name"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Is the data in a format that can be passed into an unsupervised learning model?"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "coins_name['TotalCoinSupply'] = coins_name['TotalCoinSupply'].apply(float)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "We know that our model can’t have strings passed into it. To make sure we can use our string data, we’ll transform our strings of PoW/PoS, PoS, and PoW from the ProofType column to 0,1, and 2, respectively. The function will then be run on the whole column with the .apply method."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Algorithm</th>\n",
+       "      <th>ProofType</th>\n",
+       "      <th>TotalCoinsMined</th>\n",
+       "      <th>TotalCoinSupply</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>42</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>0</td>\n",
+       "      <td>42</td>\n",
+       "      <td>42</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>404</td>\n",
+       "      <td>Scrypt</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1,055,184,902</td>\n",
+       "      <td>532,000,000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1337</td>\n",
+       "      <td>X13</td>\n",
+       "      <td>0</td>\n",
+       "      <td>29,279,424,623</td>\n",
+       "      <td>314,159,265,359</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>BTC</td>\n",
+       "      <td>SHA-256</td>\n",
+       "      <td>2</td>\n",
+       "      <td>17,927,175</td>\n",
+       "      <td>21,000,000</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>ETH</td>\n",
+       "      <td>Ethash</td>\n",
+       "      <td>2</td>\n",
+       "      <td>107,684,223</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "           Algorithm  ProofType  TotalCoinsMined  TotalCoinSupply\n",
+       "Unnamed: 0                                                       \n",
+       "42            Scrypt          0               42               42\n",
+       "404           Scrypt          0    1,055,184,902      532,000,000\n",
+       "1337             X13          0   29,279,424,623  314,159,265,359\n",
+       "BTC          SHA-256          2       17,927,175       21,000,000\n",
+       "ETH           Ethash          2      107,684,223                0"
+      ]
+     },
+     "execution_count": 19,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Transform String column\n",
+    "def change_string(ProofType):\n",
+    "    if ProofType == \"PoW/PoS\":\n",
+    "        return 0\n",
+    "    if ProofType == \"Pos\":\n",
+    "        return 1\n",
+    "    else:\n",
+    "        return 2\n",
+    "    \n",
+    "coins_name[\"ProofType\"] = coins_name[\"ProofType\"].apply(change_string)\n",
+    "coins_name.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Saving cleaned data\n",
+    "file_path = \"../Resources/coins_name.csv\"\n",
+    "coins_name.to_csv(file_path, index=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Create dummies variables for all of the text features, and store the resulting data on a DataFrame named X.**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>ProofType</th>\n",
+       "      <th>TotalCoinsMined</th>\n",
+       "      <th>TotalCoinSupply</th>\n",
+       "      <th>Algorithm_536</th>\n",
+       "      <th>Algorithm_Argon2d</th>\n",
+       "      <th>Algorithm_BLAKE256</th>\n",
+       "      <th>Algorithm_Blake</th>\n",
+       "      <th>Algorithm_Blake2S</th>\n",
+       "      <th>Algorithm_Blake2b</th>\n",
+       "      <th>Algorithm_C11</th>\n",
+       "      <th>...</th>\n",
+       "      <th>Algorithm_Tribus</th>\n",
+       "      <th>Algorithm_VBFT</th>\n",
+       "      <th>Algorithm_VeChainThor Authority</th>\n",
+       "      <th>Algorithm_X11</th>\n",
+       "      <th>Algorithm_X11GOST</th>\n",
+       "      <th>Algorithm_X13</th>\n",
+       "      <th>Algorithm_X14</th>\n",
+       "      <th>Algorithm_X15</th>\n",
+       "      <th>Algorithm_X16R</th>\n",
+       "      <th>Algorithm_XEVAN</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Unnamed: 0</th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <td>42</td>\n",
+       "      <td>0</td>\n",
+       "      <td>42</td>\n",
+       "      <td>42</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>404</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1,055,184,902</td>\n",
+       "      <td>532,000,000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>1337</td>\n",
+       "      <td>0</td>\n",
+       "      <td>29,279,424,623</td>\n",
+       "      <td>314,159,265,359</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>BTC</td>\n",
+       "      <td>2</td>\n",
+       "      <td>17,927,175</td>\n",
+       "      <td>21,000,000</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <td>ETH</td>\n",
+       "      <td>2</td>\n",
+       "      <td>107,684,223</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>...</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "      <td>0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>5 rows × 75 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "            ProofType  TotalCoinsMined  TotalCoinSupply  Algorithm_536  \\\n",
+       "Unnamed: 0                                                               \n",
+       "42                  0               42               42              0   \n",
+       "404                 0    1,055,184,902      532,000,000              0   \n",
+       "1337                0   29,279,424,623  314,159,265,359              0   \n",
+       "BTC                 2       17,927,175       21,000,000              0   \n",
+       "ETH                 2      107,684,223                0              0   \n",
+       "\n",
+       "            Algorithm_Argon2d  Algorithm_BLAKE256  Algorithm_Blake  \\\n",
+       "Unnamed: 0                                                           \n",
+       "42                          0                   0                0   \n",
+       "404                         0                   0                0   \n",
+       "1337                        0                   0                0   \n",
+       "BTC                         0                   0                0   \n",
+       "ETH                         0                   0                0   \n",
+       "\n",
+       "            Algorithm_Blake2S  Algorithm_Blake2b  Algorithm_C11  ...  \\\n",
+       "Unnamed: 0                                                       ...   \n",
+       "42                          0                  0              0  ...   \n",
+       "404                         0                  0              0  ...   \n",
+       "1337                        0                  0              0  ...   \n",
+       "BTC                         0                  0              0  ...   \n",
+       "ETH                         0                  0              0  ...   \n",
+       "\n",
+       "            Algorithm_Tribus  Algorithm_VBFT  Algorithm_VeChainThor Authority  \\\n",
+       "Unnamed: 0                                                                      \n",
+       "42                         0               0                                0   \n",
+       "404                        0               0                                0   \n",
+       "1337                       0               0                                0   \n",
+       "BTC                        0               0                                0   \n",
+       "ETH                        0               0                                0   \n",
+       "\n",
+       "            Algorithm_X11  Algorithm_X11GOST  Algorithm_X13  Algorithm_X14  \\\n",
+       "Unnamed: 0                                                                   \n",
+       "42                      0                  0              0              0   \n",
+       "404                     0                  0              0              0   \n",
+       "1337                    0                  0              1              0   \n",
+       "BTC                     0                  0              0              0   \n",
+       "ETH                     0                  0              0              0   \n",
+       "\n",
+       "            Algorithm_X15  Algorithm_X16R  Algorithm_XEVAN  \n",
+       "Unnamed: 0                                                  \n",
+       "42                      0               0                0  \n",
+       "404                     0               0                0  \n",
+       "1337                    0               0                0  \n",
+       "BTC                     0               0                0  \n",
+       "ETH                     0               0                0  \n",
+       "\n",
+       "[5 rows x 75 columns]"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X = coins_name[['Algorithm', 'ProofType', 'TotalCoinsMined', 'TotalCoinSupply']].copy()\n",
+    "X = pd.get_dummies(X, columns=['Algorithm'], drop_first=True)\n",
+    "X = X.dropna()\n",
+    "X.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(577, 75)"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X.shape"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Data Transformation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Data transformation involves thinking about the future. More times than not, there will be new data coming into your data storage (a place where raw data is stored before being touched), with many people working on different types of data analysis. We want to make sure that whoever wants to use the data in the future can do so."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Can I quickly hand off this data for others to use?\n",
+    "Now that our data has been cleaned and processed, it is ready to be converted to a readable format for future use"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Saving cleaned data\n",
+    "file_path = \"../Resources/X.csv\"\n",
+    "X.to_csv(file_path, index=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Use the StandardScaler from sklearn to standardize all of the data from the X DataFrame. Remember, this is important prior to using PCA and K-means algorithms.**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "array([[0.00000000e+00, 0.00000000e+00, 4.20000000e-11, ...,\n",
+       "        0.00000000e+00, 0.00000000e+00, 0.00000000e+00],\n",
+       "       [0.00000000e+00, 1.06585544e-03, 5.32000000e-04, ...,\n",
+       "        0.00000000e+00, 0.00000000e+00, 0.00000000e+00],\n",
+       "       [0.00000000e+00, 2.95755135e-02, 3.14159265e-01, ...,\n",
+       "        0.00000000e+00, 0.00000000e+00, 0.00000000e+00],\n",
+       "       ...,\n",
+       "       [1.00000000e+00, 7.37028150e-06, 2.10000000e-05, ...,\n",
+       "        0.00000000e+00, 0.00000000e+00, 0.00000000e+00],\n",
+       "       [1.00000000e+00, 1.29582282e-07, 1.00000000e-06, ...,\n",
+       "        0.00000000e+00, 0.00000000e+00, 0.00000000e+00],\n",
+       "       [0.00000000e+00, 2.17085015e-05, 1.00000000e-04, ...,\n",
+       "        0.00000000e+00, 0.00000000e+00, 0.00000000e+00]])"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "from sklearn.preprocessing import MinMaxScaler\n",
+    "X_scaled = MinMaxScaler().fit_transform(X)\n",
+    "X_scaled"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "PythonData",
+   "language": "python",
+   "name": "pythondata"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.9"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
